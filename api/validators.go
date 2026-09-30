@@ -15,19 +15,11 @@ func sendJSONError(w http.ResponseWriter, message string, code int) {
 }
 
 func validatePassword(password string) bool {
-	if len(password) >= 8 {
-		return true
-	} else {
-		return false
-	}
+	return len(password) >= 8
 }
 
 func validateUsername(username string) bool {
-	if len(username) >= 3 {
-		return true
-	} else {
-		return false
-	}
+	return len(username) >= 3
 }
 
 var emailRegex = regexp.MustCompile(`^[a-z0-9._%+\-]+@[a-z0-9\-]+(\.[a-z0-9\-]+)*\.[a-z]{2,}$`)

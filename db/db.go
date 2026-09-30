@@ -27,7 +27,7 @@ func createUsersTable(db *sql.DB) error {
 func createTasksTable(db *sql.DB) error {
 	sql := `CREATE TABLE IF NOT EXISTS tasks(
 		id INTEGER PRIMARY KEY,
-		desc TEXT NOT NULL,
+		description TEXT NOT NULL,
 		title TEXT NOT NULL,
 		status TEXT CHECK(status in ('todo','in-progress','done')) DEFAULT 'todo',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
