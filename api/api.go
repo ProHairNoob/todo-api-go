@@ -19,14 +19,10 @@ type userSignup struct {
 
 func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
-		}
 		var user userSignup
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			sendJSONError(w, "Invalid JSON payload", http.StatusUnprocessableEntity)
+			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
 			return
 		}
 		if !validateEmail(user.Email) {
@@ -36,6 +32,7 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 		hash, err := hashPassword(user.Password)
 		if err != nil {
 			sendJSONError(w, "Failed to process password", http.StatusInternalServerError)
+			return
 		}
 		userID, err := db.InsertUser(dbConn, user.Username, user.Email, hash)
 		if err != nil {
