@@ -44,15 +44,15 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 				return
 			}
 			sendJSONError(w, "Failed to create user", http.StatusInternalServerError)
+			return
 		}
+		token, err := createToken(userID)
 		if err != nil {
-			sendJSONError(w, "Failed to generate token", 404)
+			sendJSONError(w, "Failed to generate token", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
-		token, err := createToken(userID)
-
 		json.NewEncoder(w).Encode(map[string]any{
 			"token":   token,
 			"user_id": userID,
