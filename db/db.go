@@ -54,7 +54,7 @@ func InsertUser(dbConn *sql.DB, user string, email string, hash string) (int64, 
 }
 
 func InitDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "./api.db")
+	db, err := sql.Open("sqlite", "./api.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)")
 	if err != nil {
 		fmt.Println(err)
 		return db, err
@@ -64,6 +64,7 @@ func InitDB() (*sql.DB, error) {
 		fmt.Println(err)
 		return db, err
 	}
+	db.SetMaxOpenConns(1)
 	err = createTasksTable(db)
 	if err != nil {
 		fmt.Println(err)
