@@ -29,6 +29,7 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Username must have a minimum of 3 characters", http.StatusUnprocessableEntity)
 			return
 		}
+		user.Email = strings.ToLower(user.Email)
 		if !validateEmail(user.Email) {
 			sendJSONError(w, "Invalid Email syntax", http.StatusUnprocessableEntity)
 			return
