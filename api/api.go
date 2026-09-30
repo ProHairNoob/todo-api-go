@@ -19,9 +19,15 @@ type userSignup struct {
 
 func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1048576)
 		var user userSignup
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(err, &maxBytesErr) {
+				sendJSONError(w, "The request was too large", http.StatusRequestEntityTooLarge)
+				return
+			}
 			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
 			return
 		}
