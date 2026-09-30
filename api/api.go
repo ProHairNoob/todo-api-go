@@ -31,11 +31,13 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
 			return
 		}
+		user.Username = strings.TrimSpace(user.Username)
 		if !validateUsername(user.Username) {
 			sendJSONError(w, "Username must have a minimum of 3 characters", http.StatusUnprocessableEntity)
 			return
 		}
 		user.Email = strings.ToLower(user.Email)
+		user.Email = strings.TrimSpace(user.Email)
 		if !validateEmail(user.Email) {
 			sendJSONError(w, "Invalid Email syntax", http.StatusUnprocessableEntity)
 			return

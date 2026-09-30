@@ -11,12 +11,8 @@ import (
 )
 
 func main() {
-	h1 := func(w http.ResponseWriter, __ *http.Request) {
-		io.WriteString(w, "Hello from root!\n")
-	}
-	h2 := func(w http.ResponseWriter, __ *http.Request) {
-		io.WriteString(w, "Hello from foo!\n")
-	}
+	mux := http.ServeMux
+
 	database, err := db.InitDB()
 	if err != nil {
 		log.Fatal(err)
