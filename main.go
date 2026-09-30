@@ -1,25 +1,31 @@
 package main
 
 import (
-	//"fmt"
-	"io"
 	"log"
 	"net/http"
+	"time"
 
 	"todo-api/api"
 	"todo-api/db"
 )
 
 func main() {
-	mux := http.ServeMux
-
 	database, err := db.InitDB()
 	if err != nil {
 		log.Fatal(err)
 	}
+
 	defer database.Close()
-	http.HandleFunc("POST /register", api.RegisterHandler(database))
-	http.HandleFunc("GET /{$}", h1)
-	http.HandleFunc("/foo", h2)
-	log.Fatal(http.ListenAndServe(":8080", nil))
+	mux := http.NewServeMux()
+	mux.HandleFunc("POST /register ", api.RegisterHandler(database))
+	srv := &http.Server{
+		Addr:              ":8080",
+		Handler:           mux,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      10 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	log.Fatal(srv.ListenAndServe())
 }
