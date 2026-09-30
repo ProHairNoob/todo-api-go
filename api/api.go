@@ -25,8 +25,16 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
 			return
 		}
+		if !validateUsername(user.Username) {
+			sendJSONError(w, "Username must have a minimum of 3 characters", http.StatusUnprocessableEntity)
+			return
+		}
 		if !validateEmail(user.Email) {
 			sendJSONError(w, "Invalid Email syntax", http.StatusUnprocessableEntity)
+			return
+		}
+		if !validatePassword(user.Password) {
+			sendJSONError(w, "Password must have a minimum of 8 characters", http.StatusUnprocessableEntity)
 			return
 		}
 		hash, err := hashPassword(user.Password)

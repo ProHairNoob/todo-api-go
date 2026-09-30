@@ -3,6 +3,7 @@ package api
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -17,17 +18,18 @@ func createToken(userID int64) (string, error) {
 	)
 	// Enter your own secret key this is for debug purposes
 	key = []byte("secret")
+	now := time.Now().Unix()
 	token = jwt.NewWithClaims(jwt.SigningMethodHS256,
 		jwt.MapClaims{
-			"sub": userID,
-			"iat": time.Now().Unix(),
-			"exp": time.Now().Unix() + (30 * 60),
+			"sub": strconv.FormatInt(userID, 10),
+			"iat": now,
+			"exp": now + (30 * 60),
 		})
 	signed, err := token.SignedString(key)
 	if err != nil {
 		return "", err
 	}
-	return signed, nil
+	return signed, err
 }
 
 func shaHashPassword(password string) string {

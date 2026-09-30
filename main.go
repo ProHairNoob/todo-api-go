@@ -1,7 +1,7 @@
 package main
 
 import (
-	"fmt"
+	//"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -19,7 +19,7 @@ func main() {
 	}
 	database, err := db.InitDB()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 	}
 	defer database.Close()
 	http.HandleFunc("POST /register", api.RegisterHandler(database))
