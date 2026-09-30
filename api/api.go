@@ -3,7 +3,7 @@ package api
 import (
 	"database/sql"
 	"encoding/json"
-	//"errors"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -45,7 +45,7 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		userID, err := db.InsertUser(dbConn, user.Username, user.Email, hash)
 		if err != nil {
-			if strings.Contains(err.Error(), "UNIQUE constraint failed") {
+			if errors.Is(err, db.ErrUserExists) {
 				sendJSONError(w, "Username or email already exists", http.StatusConflict)
 				return
 			}

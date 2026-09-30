@@ -40,11 +40,11 @@ func shaHashPassword(password string) string {
 
 func hashPassword(password string) (string, error) {
 	password = shaHashPassword(password)
-	hashed_password, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return "", err
 	}
-	return string(hashed_password), err
+	return string(hashedPassword), err
 }
 
 func verifyPassword(password string, hash string) bool {

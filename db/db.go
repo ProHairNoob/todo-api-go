@@ -2,11 +2,11 @@ package db
 
 import (
 	"database/sql"
+	"errors"
 	"fmt"
-
 	//"log"
-
-	_ "modernc.org/sqlite"
+	"modernc.org/sqlite"
+	sqlite3 "modernc.org/sqlite/lib"
 )
 
 func createUsersTable(db *sql.DB) error {
@@ -39,13 +39,20 @@ func createTasksTable(db *sql.DB) error {
 	return nil
 }
 
+var ErrUserExists = errors.New("username or email already exists")
+
 func InsertUser(dbConn *sql.DB, user string, email string, hash string) (int64, error) {
 	result, err := dbConn.Exec("INSERT INTO users (username,email,password_hash) VALUES (?,?,?)",
 		user, email, hash,
 	)
 	if err != nil {
+		var sqliteErr *sqlite.Error
+		if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_UNIQUE {
+			return 0, ErrUserExists
+		}
 		return 0, err
 	}
+
 	UserID, err := result.LastInsertId()
 	if err != nil {
 		return 0, err
