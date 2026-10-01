@@ -27,6 +27,7 @@ func createUsersTable(db *sql.DB) error {
 func createTasksTable(db *sql.DB) error {
 	sql := `CREATE TABLE IF NOT EXISTS tasks(
 		id INTEGER PRIMARY KEY,
+		user_id INTEGER,
 		description TEXT NOT NULL,
 		title TEXT NOT NULL,
 		status TEXT CHECK(status in ('todo','in-progress','done')) DEFAULT 'todo',
@@ -37,6 +38,15 @@ func createTasksTable(db *sql.DB) error {
 		return err
 	}
 	return nil
+}
+
+func InsertTask(dbConn *sql.DB, title string, desc string, userID int64) (int64, error) {
+	result, err := dbConn.Exec("INSERT INTO tasks (title,desc,user_id) VALUES (?,?,?)", title, desc, userID)
+	if err != nil {
+		return 0, err
+	}
+	taskID, err := result.LastInsertId()
+	return taskID, err
 }
 
 var ErrUserExists = errors.New("username or email already exists")

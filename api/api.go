@@ -127,3 +127,8 @@ func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
 		})
 	}
 }
+
+func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+	}
+}
