@@ -23,7 +23,7 @@ type userSignin struct {
 
 func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
 		var user userSignup
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
@@ -80,7 +80,7 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 
 func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
 		var user userSignin
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
