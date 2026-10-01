@@ -57,13 +57,13 @@ func verifyToken(tokenString string, key []byte) (int64, error) {
 	jwt.WithExpirationRequired()
 
 	if err != nil {
-		switch {
-		case errors.Is(err, jwt.ErrTokenExpired):
+		if errors.Is(err, jwt.ErrTokenExpired) {
 			return 0, ErrExpiredToken
-		case errors.Is(err, jwt.ErrSignatureInvalid):
+		} else if errors.Is(err, jwt.ErrSignatureInvalid) {
 			return 0, ErrInvalidSignature
 		}
 		return 0, err
+
 	}
 	if !token.Valid {
 		return 0, errors.New("invalid token")
