@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"regexp"
 	"strings"
@@ -15,9 +16,14 @@ func sendJSONError(w http.ResponseWriter, message string, code int) {
 	})
 }
 
-func validateAuthHeader(authHeader string) bool {
+var ErrInvalidAuth = errors.New("invalid authorization format")
+
+func validateAuthHeader(authHeader string) (string, error) {
 	parts := strings.Split(authHeader, " ")
-	return len(parts) != 2 || strings.ToLower(parts[0]) != "bearer"
+	if len(parts) != 2 || strings.ToLower(parts[0]) != "bearer" {
+		return "", ErrInvalidAuth
+	}
+	return parts[1], nil
 }
 
 func validatePassword(password string) bool {
