@@ -135,9 +135,11 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
 			return
 		}
-		if !validateAuthHeader(authHeader) {
-			sendJSONError(w, "Invalid authorization format, expected 'Bearer' <token>", http.StatusUnauthorized)
+		token, err := validateAuthHeader(authHeader)
+		if err != nil {
+			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
 			return
 		}
+		userID, err := verifyToken(token, []byte("secret"))
 	}
 }

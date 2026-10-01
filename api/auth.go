@@ -39,6 +39,11 @@ func createToken(userID int64) (string, error) {
 	return signed, err
 }
 
+var (
+	ErrExpiredToken     = errors.New("token expired")
+	ErrInvalidSignature = errors.New("signature is invalid")
+)
+
 func verifyToken(tokenString string, key []byte) (int64, error) {
 	claims := &Claims{}
 	token, err := jwt.ParseWithClaims(
@@ -54,9 +59,9 @@ func verifyToken(tokenString string, key []byte) (int64, error) {
 	if err != nil {
 		switch {
 		case errors.Is(err, jwt.ErrTokenExpired):
-			return 0, errors.New("token expired")
+			return 0, ErrExpiredToken
 		case errors.Is(err, jwt.ErrSignatureInvalid):
-			return 0, errors.New("signature is invalid")
+			return 0, ErrInvalidSignature
 		}
 		return 0, err
 	}
