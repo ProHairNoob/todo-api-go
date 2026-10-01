@@ -3,6 +3,7 @@ package api
 import (
 	"crypto/sha256"
 	"encoding/base64"
+	"errors"
 	"strconv"
 	"time"
 
@@ -38,8 +39,31 @@ func createToken(userID int64) (string, error) {
 	return signed, err
 }
 
-func verifyToken(token string) bool {
-	token, err := jwt.ParseWithClaims(token)
+func verifyToken(tokenString string, key []byte) (int64, error) {
+	claims := &Claims{}
+	token, err := jwt.ParseWithClaims(
+		tokenString,
+		claims,
+		func(t *jwt.Token) (any, error) {
+			return key, nil
+		},
+		jwt.WithValidMethods([]string{"HS256"}),
+	)
+	jwt.WithExpirationRequired()
+
+	if err != nil {
+		switch {
+		case errors.Is(err, jwt.ErrTokenExpired):
+			return 0, errors.New("token expired")
+		case errors.Is(err, jwt.ErrSignatureInvalid):
+			return 0, errors.New("signature is invalid")
+		}
+		return 0, err
+	}
+	if !token.Valid {
+		return 0, errors.New("invalid token")
+	}
+	return strconv.ParseInt(claims.Subject, 10, 64)
 }
 
 func shaHashPassword(password string) string {

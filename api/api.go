@@ -16,6 +16,10 @@ type userSignup struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+type userSignin struct {
+	Email    string `json:"email"`
+	Password string `json:"password"`
+}
 
 func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -71,5 +75,22 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 			"token":   token,
 			"user_id": userID,
 		})
+	}
+}
+
+func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 1048576)
+		var user userSignin
+		err := json.NewDecoder(r.Body).Decode(&user)
+		if err != nil {
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(err, &maxBytesErr) {
+				sendJSONError(w, "The request was too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
+			return
+		}
 	}
 }
