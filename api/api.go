@@ -130,5 +130,14 @@ func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
 
 func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+			return
+		}
+		if !validateAuthHeader(authHeader) {
+			sendJSONError(w, "Invalid authorization format, expected 'Bearer' <token>", http.StatusUnauthorized)
+			return
+		}
 	}
 }

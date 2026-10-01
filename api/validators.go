@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"regexp"
+	"strings"
 )
 
 func sendJSONError(w http.ResponseWriter, message string, code int) {
@@ -12,6 +13,11 @@ func sendJSONError(w http.ResponseWriter, message string, code int) {
 	json.NewEncoder(w).Encode(map[string]string{
 		"message": message,
 	})
+}
+
+func validateAuthHeader(authHeader string) bool {
+	parts := strings.Split(authHeader, " ")
+	return len(parts) != 2 || strings.ToLower(parts[0]) != "bearer"
 }
 
 func validatePassword(password string) bool {
