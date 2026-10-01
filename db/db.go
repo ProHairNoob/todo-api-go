@@ -60,6 +60,16 @@ func InsertUser(dbConn *sql.DB, user string, email string, hash string) (int64, 
 	return UserID, err
 }
 
+var ErrUserNotFound = errors.New("user not found")
+
+func GetUserByEmail(dbConn *sql.DB, email string) (userID int64, hash string, err error) {
+	err = dbConn.QueryRow("SELECT password_hash,user_id FROM users WHERE email = ?", email).Scan(&hash, &userID)
+	if errors.Is(err, sql.ErrNoRows) {
+		return 0, "", ErrUserNotFound
+	}
+	return userID, hash, err
+}
+
 func InitDB() (*sql.DB, error) {
 	db, err := sql.Open("sqlite", "./api.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)")
 	if err != nil {

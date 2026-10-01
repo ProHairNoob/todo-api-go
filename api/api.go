@@ -92,5 +92,38 @@ func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
 			return
 		}
+		user.Email = strings.ToLower(user.Email)
+		user.Email = strings.TrimSpace(user.Email)
+		if !validateEmail(user.Email) {
+			sendJSONError(w, "Invalid Email syntax", http.StatusUnprocessableEntity)
+			return
+		}
+		if !validatePassword(user.Password) {
+			sendJSONError(w, "Password must have a minimum of 8 characters", http.StatusUnprocessableEntity)
+			return
+		}
+		userID, hash, err := db.GetUserByEmail(dbConn, user.Email)
+		if err != nil {
+			if errors.Is(err, db.ErrUserNotFound) {
+				sendJSONError(w, "invalid email or password", http.StatusUnauthorized)
+				return
+			}
+		}
+		verify := verifyPassword(user.Password, hash)
+		if !verify {
+			sendJSONError(w, "invalid email or password", http.StatusUnauthorized)
+			return
+		}
+		token, err := createToken(userID)
+		if err != nil {
+			sendJSONError(w, "Failed to generate token", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"token":   token,
+			"user_id": userID,
+		})
 	}
 }

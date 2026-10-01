@@ -18,6 +18,7 @@ func main() {
 	defer database.Close()
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /register", api.RegisterHandler(database))
+	mux.HandleFunc("POST /login", api.LoginHandler(database))
 	srv := &http.Server{
 		Addr:              ":8080",
 		Handler:           mux,
