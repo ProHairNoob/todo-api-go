@@ -10,6 +10,10 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type Claims struct {
+	jwt.RegisteredClaims
+}
+
 func createToken(userID int64) (string, error) {
 	var (
 		key    []byte
@@ -18,18 +22,24 @@ func createToken(userID int64) (string, error) {
 	)
 	// Enter your own secret key this is for debug purposes
 	key = []byte("secret")
-	now := time.Now().Unix()
-	token = jwt.NewWithClaims(jwt.SigningMethodHS256,
-		jwt.MapClaims{
-			"sub": strconv.FormatInt(userID, 10),
-			"iat": now,
-			"exp": now + (30 * 60),
-		})
+	now := time.Now()
+	claims := Claims{
+		jwt.RegisteredClaims{
+			Subject:   strconv.FormatInt(userID, 10),
+			IssuedAt:  jwt.NewNumericDate(now),
+			ExpiresAt: jwt.NewNumericDate(now.Add(30 * time.Minute)),
+		},
+	}
+	token = jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 	signed, err := token.SignedString(key)
 	if err != nil {
 		return "", err
 	}
 	return signed, err
+}
+
+func verifyToken(token string) bool {
+	token, err := jwt.ParseWithClaims(token)
 }
 
 func shaHashPassword(password string) string {
