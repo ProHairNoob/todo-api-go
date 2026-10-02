@@ -42,6 +42,7 @@ func createToken(userID int64) (string, error) {
 var (
 	ErrExpiredToken     = errors.New("token expired")
 	ErrInvalidSignature = errors.New("signature is invalid")
+	ErrInvalidToken     = errors.New("invalid token")
 )
 
 func verifyToken(tokenString string, key []byte) (int64, error) {
@@ -66,7 +67,7 @@ func verifyToken(tokenString string, key []byte) (int64, error) {
 
 	}
 	if !token.Valid {
-		return 0, errors.New("invalid token")
+		return 0, ErrInvalidToken
 	}
 	return strconv.ParseInt(claims.Subject, 10, 64)
 }

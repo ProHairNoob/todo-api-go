@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
-	//"log"
+
 	"modernc.org/sqlite"
 	sqlite3 "modernc.org/sqlite/lib"
 )
@@ -41,8 +41,9 @@ func createTasksTable(db *sql.DB) error {
 }
 
 func InsertTask(dbConn *sql.DB, title string, desc string, userID int64) (int64, error) {
-	result, err := dbConn.Exec("INSERT INTO tasks (title,desc,user_id) VALUES (?,?,?)", title, desc, userID)
+	result, err := dbConn.Exec("INSERT INTO tasks (title,description,user_id) VALUES (?,?,?)", title, desc, userID)
 	if err != nil {
+		fmt.Println(err)
 		return 0, err
 	}
 	taskID, err := result.LastInsertId()

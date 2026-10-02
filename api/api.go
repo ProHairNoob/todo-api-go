@@ -20,6 +20,10 @@ type userSignin struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
+type task struct {
+	Title       string `json:"title"`
+	Description string `json:"desc"`
+}
 
 func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -130,6 +134,18 @@ func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
 
 func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		var task task
+		err := json.NewDecoder(r.Body).Decode(&task)
+		if err != nil {
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(err, &maxBytesErr) {
+				sendJSONError(w, "The request was too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
+			return
+		}
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
 			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
@@ -141,5 +157,32 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			return
 		}
 		userID, err := verifyToken(token, []byte("secret"))
+		if err != nil {
+			if errors.Is(err, ErrExpiredToken) {
+				sendJSONError(w, "token expired", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidSignature) {
+				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidToken) {
+				sendJSONError(w, "invalid token", http.StatusUnauthorized)
+				return
+			} else {
+				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				return
+			}
+		}
+		taskID, err := db.InsertTask(dbConn, task.Title, task.Description, userID)
+		if err != nil {
+			sendJSONError(w, "database error", http.StatusInternalServerError)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"id":     taskID,
+			"title":  task.Title,
+			"desc":   task.Description,
+			"status": "todo",
+		})
 	}
 }
