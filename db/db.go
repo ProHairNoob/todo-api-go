@@ -50,6 +50,23 @@ func InsertTask(dbConn *sql.DB, title string, desc string, userID int64) (int64,
 	return taskID, err
 }
 
+var ErrTaskNotFound = errors.New("task not found")
+
+func DeleteTask(dbConn *sql.DB, taskID int64, userID int64) error {
+	result, err := dbConn.Exec("DELETE FROM tasks WHERE id = ? AND user_id = ?", taskID, userID)
+	if err != nil {
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrTaskNotFound
+	}
+	return err
+}
+
 var ErrUserExists = errors.New("username or email already exists")
 
 func InsertUser(dbConn *sql.DB, user string, email string, hash string) (int64, error) {

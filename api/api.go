@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"todo-api/db"
@@ -175,6 +177,7 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		taskID, err := db.InsertTask(dbConn, task.Title, task.Description, userID)
 		if err != nil {
 			sendJSONError(w, "database error", http.StatusInternalServerError)
+			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
@@ -184,5 +187,55 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			"desc":   task.Description,
 			"status": "todo",
 		})
+	}
+}
+
+func DeleteTodoHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		strTaskID := r.PathValue("task_id")
+		taskID, err := strconv.ParseInt(strTaskID, 10, 64)
+		if err != nil {
+			sendJSONError(w, "invalid id format, id must be a number", http.StatusBadRequest)
+			return
+		}
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+			return
+		}
+		token, err := validateAuthHeader(authHeader)
+		if err != nil {
+			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
+			return
+		}
+		userID, err := verifyToken(token, []byte("secret"))
+		if err != nil {
+			if errors.Is(err, ErrExpiredToken) {
+				sendJSONError(w, "token expired", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidSignature) {
+				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidToken) {
+				sendJSONError(w, "invalid token", http.StatusUnauthorized)
+				return
+			} else {
+				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				return
+			}
+		}
+		err = db.DeleteTask(dbConn, taskID, userID)
+		if err != nil {
+			if errors.Is(err, db.ErrTaskNotFound) {
+				sendJSONError(w, "task not found", http.StatusNotFound)
+				return
+			} else {
+				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				fmt.Println(err)
+				return
+			}
+		}
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
