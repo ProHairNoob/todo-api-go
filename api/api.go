@@ -26,6 +26,11 @@ type task struct {
 	Title       string `json:"title"`
 	Description string `json:"desc"`
 }
+type taskUpdate struct {
+	Title       string `json:"title"`
+	Description string `json:"desc"`
+	Status      string `json:"status"`
+}
 
 func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -58,7 +63,8 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		hash, err := hashPassword(user.Password)
 		if err != nil {
-			sendJSONError(w, "Failed to process password", http.StatusInternalServerError)
+			fmt.Println("err: ", err)
+			sendJSONError(w, "server failure", http.StatusInternalServerError)
 			return
 		}
 		userID, err := db.InsertUser(dbConn, user.Username, user.Email, hash)
@@ -170,13 +176,15 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 				sendJSONError(w, "invalid token", http.StatusUnauthorized)
 				return
 			} else {
+				fmt.Println("err: ", err)
 				sendJSONError(w, "server failure", http.StatusInternalServerError)
 				return
 			}
 		}
 		taskID, err := db.InsertTask(dbConn, task.Title, task.Description, userID)
 		if err != nil {
-			sendJSONError(w, "database error", http.StatusInternalServerError)
+			fmt.Println("err: ", err)
+			sendJSONError(w, "server failure", http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -221,6 +229,7 @@ func DeleteTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 				sendJSONError(w, "invalid token", http.StatusUnauthorized)
 				return
 			} else {
+				fmt.Println("err: ", err)
 				sendJSONError(w, "server failure", http.StatusInternalServerError)
 				return
 			}
@@ -231,11 +240,84 @@ func DeleteTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 				sendJSONError(w, "task not found", http.StatusNotFound)
 				return
 			} else {
+				fmt.Println("err: ", err)
 				sendJSONError(w, "server failure", http.StatusInternalServerError)
-				fmt.Println(err)
 				return
 			}
 		}
 		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func UpdateTodoHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		strTaskID := r.PathValue("task_id")
+		var task taskUpdate
+		err := json.NewDecoder(r.Body).Decode(&task)
+		if err != nil {
+			var maxBytesErr *http.MaxBytesError
+			if errors.As(err, &maxBytesErr) {
+				sendJSONError(w, "The request was too large", http.StatusRequestEntityTooLarge)
+				return
+			}
+			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
+			return
+		}
+
+		taskID, err := strconv.ParseInt(strTaskID, 10, 64)
+		if err != nil {
+			sendJSONError(w, "invalid id format, id must be a number", http.StatusBadRequest)
+			return
+		}
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+			return
+		}
+		token, err := validateAuthHeader(authHeader)
+		if err != nil {
+			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
+			return
+		}
+		userID, err := verifyToken(token, []byte("secret"))
+		if err != nil {
+			if errors.Is(err, ErrExpiredToken) {
+				sendJSONError(w, "token expired", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidSignature) {
+				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidToken) {
+				sendJSONError(w, "invalid token", http.StatusUnauthorized)
+				return
+			} else {
+				fmt.Println("err: ", err)
+				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				return
+			}
+		}
+		err = db.UpdateTask(dbConn, task.Description, task.Title, task.Status, taskID, userID)
+		if err != nil {
+			if errors.Is(err, db.ErrTaskNotFound) {
+				sendJSONError(w, "task not found", http.StatusNotFound)
+				return
+			} else if errors.Is(err, db.ErrInvalidStatus) {
+				sendJSONError(w, db.ErrInvalidStatus.Error(), http.StatusUnprocessableEntity)
+				return
+			} else {
+				fmt.Println("err: ", err)
+				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				return
+			}
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(map[string]any{
+			"id":     taskID,
+			"title":  task.Title,
+			"desc":   task.Description,
+			"status": task.Status,
+		})
 	}
 }

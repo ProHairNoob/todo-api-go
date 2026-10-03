@@ -9,6 +9,13 @@ import (
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
+var (
+	ErrTaskNotFound  = errors.New("task not found")
+	ErrInvalidStatus = errors.New("invalid status, expected 'todo','in-progress','done'")
+	ErrUserExists    = errors.New("username or email already exists")
+	ErrUserNotFound  = errors.New("user not found")
+)
+
 func createUsersTable(db *sql.DB) error {
 	sql := `CREATE TABLE IF NOT EXISTS users(
 		user_id INTEGER PRIMARY KEY,
@@ -50,8 +57,6 @@ func InsertTask(dbConn *sql.DB, title string, desc string, userID int64) (int64,
 	return taskID, err
 }
 
-var ErrTaskNotFound = errors.New("task not found")
-
 func DeleteTask(dbConn *sql.DB, taskID int64, userID int64) error {
 	result, err := dbConn.Exec("DELETE FROM tasks WHERE id = ? AND user_id = ?", taskID, userID)
 	if err != nil {
@@ -67,7 +72,24 @@ func DeleteTask(dbConn *sql.DB, taskID int64, userID int64) error {
 	return err
 }
 
-var ErrUserExists = errors.New("username or email already exists")
+func UpdateTask(dbConn *sql.DB, desc string, title string, status string, taskID int64, userID int64) error {
+	result, err := dbConn.Exec("UPDATE tasks SET description = ?, title = ?,status = ? WHERE id = ? AND user_id = ?", desc, title, status, taskID, userID)
+	if err != nil {
+		var sqliteErr *sqlite.Error
+		if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_CHECK {
+			return ErrInvalidStatus
+		}
+		return err
+	}
+	n, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	if n == 0 {
+		return ErrTaskNotFound
+	}
+	return err
+}
 
 func InsertUser(dbConn *sql.DB, user string, email string, hash string) (int64, error) {
 	result, err := dbConn.Exec("INSERT INTO users (username,email,password_hash) VALUES (?,?,?)",
@@ -87,8 +109,6 @@ func InsertUser(dbConn *sql.DB, user string, email string, hash string) (int64, 
 	}
 	return UserID, err
 }
-
-var ErrUserNotFound = errors.New("user not found")
 
 func GetUserByEmail(dbConn *sql.DB, email string) (userID int64, hash string, err error) {
 	err = dbConn.QueryRow("SELECT password_hash,user_id FROM users WHERE email = ?", email).Scan(&hash, &userID)

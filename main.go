@@ -21,6 +21,7 @@ func main() {
 	mux.HandleFunc("POST /login", api.LoginHandler(database))
 	mux.HandleFunc("POST /todo", api.TodoHandler(database))
 	mux.HandleFunc("DELETE /todo/{task_id}", api.DeleteTodoHandler(database))
+	mux.HandleFunc("UPDATE /todo/{task_id}", api.UpdateTodoHandler(database))
 	srv := &http.Server{
 		Addr:              ":8080",
 		Handler:           mux,
