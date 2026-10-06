@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -30,6 +31,8 @@ func main() {
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-
+	tasks, _ := db.GetTask(database, 1, 1, 5)
+	log.Printf("uhh: %#v", tasks)
+	fmt.Printf("%#v", tasks)
 	log.Fatal(srv.ListenAndServe())
 }

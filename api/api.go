@@ -22,7 +22,7 @@ type userSignin struct {
 	Email    string `json:"email"`
 	Password string `json:"password"`
 }
-type task struct {
+type addTask struct {
 	Title       string `json:"title"`
 	Description string `json:"desc"`
 }
@@ -143,7 +143,7 @@ func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
 func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		r.Body = http.MaxBytesReader(w, r.Body, 4096)
-		var task task
+		var task addTask
 		err := json.NewDecoder(r.Body).Decode(&task)
 		if err != nil {
 			var maxBytesErr *http.MaxBytesError
@@ -319,5 +319,11 @@ func UpdateTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			"desc":   task.Description,
 			"status": task.Status,
 		})
+	}
+}
+
+// todo finish GET /todos with pagination
+func GetTodoHandler(dbConn *sql.DB) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
 	}
 }

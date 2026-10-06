@@ -9,6 +9,13 @@ import (
 	sqlite3 "modernc.org/sqlite/lib"
 )
 
+type tasks struct {
+	ID          int64  `json:"id"`
+	Title       string `json:"title"`
+	Description string `json:"description"`
+	Status      string `json:"status"`
+}
+
 var (
 	ErrTaskNotFound  = errors.New("task not found")
 	ErrInvalidStatus = errors.New("invalid status, expected 'todo','in-progress','done'")
@@ -89,6 +96,24 @@ func UpdateTask(dbConn *sql.DB, desc string, title string, status string, taskID
 		return ErrTaskNotFound
 	}
 	return err
+}
+
+// finish get task in db
+func GetTask(dbConn *sql.DB, userID int64, limit int64, page int64) ([]tasks, error) {
+	offset := (page - 1) * limit
+	row, err := dbConn.Query("SELECT id,title,description,status FROM tasks WHERE user_id = ? ORDER BY id LIMIT ? OFFSET ?", userID, limit, offset)
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	var task []tasks
+	for row.Next() {
+		var tsk tasks
+		row.Scan(&tsk.ID, &tsk.Title, &tsk.Description, &tsk.Status)
+		task = append(task, tsk)
+	}
+	return task, err
 }
 
 func InsertUser(dbConn *sql.DB, user string, email string, hash string) (int64, error) {
