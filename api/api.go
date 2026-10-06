@@ -325,5 +325,57 @@ func UpdateTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 // todo finish GET /todos with pagination
 func GetTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		r.Body = http.MaxBytesReader(w, r.Body, 4096)
+		query := r.URL.Query()
+		page, err := strconv.ParseInt(query.Get("page"), 10, 64)
+		if err != nil || page == 0 {
+			page = 1
+		}
+		limit, err := strconv.ParseInt(query.Get("limit"), 10, 64)
+		if err != nil || limit == 0 {
+			limit = 10
+		}
+
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+			return
+		}
+		token, err := validateAuthHeader(authHeader)
+		if err != nil {
+			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
+			return
+		}
+		userID, err := verifyToken(token, []byte("secret"))
+		if err != nil {
+			if errors.Is(err, ErrExpiredToken) {
+				sendJSONError(w, "token expired", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidSignature) {
+				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidToken) {
+				sendJSONError(w, "invalid token", http.StatusUnauthorized)
+				return
+			} else {
+				fmt.Println("err: ", err)
+				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				return
+			}
+		}
+		tasks, err := db.GetTask(dbConn, userID, limit, page)
+		if err != nil {
+			fmt.Println("err: ", err)
+			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			return
+		}
+		jsonData, err := json.Marshal(tasks)
+		if err != nil {
+			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write(jsonData)
 	}
 }

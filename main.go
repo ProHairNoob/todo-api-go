@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"net/http"
 	"time"
@@ -23,6 +22,7 @@ func main() {
 	mux.HandleFunc("POST /todo", api.TodoHandler(database))
 	mux.HandleFunc("DELETE /todo/{task_id}", api.DeleteTodoHandler(database))
 	mux.HandleFunc("UPDATE /todo/{task_id}", api.UpdateTodoHandler(database))
+	mux.HandleFunc("GET /todo", api.GetTodoHandler(database))
 	srv := &http.Server{
 		Addr:              ":8080",
 		Handler:           mux,
@@ -31,8 +31,6 @@ func main() {
 		WriteTimeout:      10 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
-	tasks, _ := db.GetTask(database, 1, 1, 5)
-	log.Printf("uhh: %#v", tasks)
-	fmt.Printf("%#v", tasks)
+
 	log.Fatal(srv.ListenAndServe())
 }
