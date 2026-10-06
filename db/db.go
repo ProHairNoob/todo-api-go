@@ -137,8 +137,12 @@ func InsertUser(dbConn *sql.DB, user string, email string, hash string) (int64, 
 
 func GetUserByEmail(dbConn *sql.DB, email string) (userID int64, hash string, err error) {
 	err = dbConn.QueryRow("SELECT password_hash,user_id FROM users WHERE email = ?", email).Scan(&hash, &userID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, "", ErrUserNotFound
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return 0, "", ErrUserNotFound
+		} else {
+			return 0, "", err
+		}
 	}
 	return userID, hash, err
 }

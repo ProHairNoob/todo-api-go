@@ -119,6 +119,9 @@ func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
 			if errors.Is(err, db.ErrUserNotFound) {
 				sendJSONError(w, "invalid email or password", http.StatusUnauthorized)
 				return
+			} else {
+				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				return
 			}
 		}
 		verify := verifyPassword(user.Password, hash)
