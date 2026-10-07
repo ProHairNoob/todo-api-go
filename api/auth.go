@@ -4,10 +4,12 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"os"
 	"strconv"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	_ "github.com/joho/godotenv/autoload"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -21,8 +23,7 @@ func createToken(userID int64) (string, error) {
 		token  *jwt.Token
 		signed string
 	)
-	// Enter your own secret key this is for debug purposes
-	key = []byte("secret")
+	key = []byte(os.Getenv("SECRET_KEY"))
 	now := time.Now()
 	claims := Claims{
 		jwt.RegisteredClaims{
@@ -55,8 +56,6 @@ func verifyToken(tokenString string, key []byte) (int64, error) {
 		},
 		jwt.WithValidMethods([]string{"HS256"}),
 	)
-	jwt.WithExpirationRequired()
-
 	if err != nil {
 		if errors.Is(err, jwt.ErrTokenExpired) {
 			return 0, ErrExpiredToken
