@@ -338,6 +338,9 @@ func GetTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		if err != nil || limit == 0 {
 			limit = 10
 		}
+		if limit > 100 {
+			limit = 100
+		}
 
 		authHeader := r.Header.Get("Authorization")
 		if authHeader == "" {
