@@ -46,8 +46,9 @@ var (
 	ErrInvalidToken     = errors.New("invalid token")
 )
 
-func verifyToken(tokenString string, key []byte) (int64, error) {
+func verifyToken(tokenString string) (int64, error) {
 	claims := &Claims{}
+	key := os.Getenv("SECRET_KEY")
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		claims,

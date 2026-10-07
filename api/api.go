@@ -167,7 +167,7 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
 			return
 		}
-		userID, err := verifyToken(token, []byte("secret"))
+		userID, err := verifyToken(token)
 		if err != nil {
 			if errors.Is(err, ErrExpiredToken) {
 				sendJSONError(w, "token expired", http.StatusUnauthorized)
@@ -220,7 +220,7 @@ func DeleteTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
 			return
 		}
-		userID, err := verifyToken(token, []byte("secret"))
+		userID, err := verifyToken(token)
 		if err != nil {
 			if errors.Is(err, ErrExpiredToken) {
 				sendJSONError(w, "token expired", http.StatusUnauthorized)
@@ -283,7 +283,7 @@ func UpdateTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
 			return
 		}
-		userID, err := verifyToken(token, []byte("secret"))
+		userID, err := verifyToken(token)
 		if err != nil {
 			if errors.Is(err, ErrExpiredToken) {
 				sendJSONError(w, "token expired", http.StatusUnauthorized)
@@ -349,7 +349,7 @@ func GetTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
 			return
 		}
-		userID, err := verifyToken(token, []byte("secret"))
+		userID, err := verifyToken(token)
 		if err != nil {
 			if errors.Is(err, ErrExpiredToken) {
 				sendJSONError(w, "token expired", http.StatusUnauthorized)
