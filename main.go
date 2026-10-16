@@ -19,10 +19,10 @@ func main() {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /register", api.RegisterHandler(database))
 	mux.HandleFunc("POST /login", api.LoginHandler(database))
-	mux.HandleFunc("POST /todo", api.TodoHandler(database))
-	mux.HandleFunc("DELETE /todo/{task_id}", api.DeleteTodoHandler(database))
-	mux.HandleFunc("PUT /todo/{task_id}", api.UpdateTodoHandler(database))
-	mux.HandleFunc("GET /todo", api.GetTodoHandler(database))
+	mux.HandleFunc("POST /todo", api.AuthMiddleware(http.HandlerFunc(api.TodoHandler(database))))
+	mux.HandleFunc("DELETE /todo/{task_id}", api.AuthMiddleware(api.DeleteTodoHandler(database)))
+	mux.HandleFunc("PUT /todo/{task_id}", api.AuthMiddleware(api.UpdateTodoHandler(database)))
+	mux.HandleFunc("GET /todo", api.AuthMiddleware(api.GetTodoHandler(database)))
 	srv := &http.Server{
 		Addr:              ":8080",
 		Handler:           mux,

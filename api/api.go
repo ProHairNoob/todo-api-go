@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
@@ -12,6 +13,10 @@ import (
 	"todo-api/db"
 	// "todo-api/api"
 )
+
+type contextKey string
+
+const userIDKey contextKey = "userID"
 
 type userSignup struct {
 	Username string `json:"username"`
@@ -30,6 +35,41 @@ type taskUpdate struct {
 	Title       string `json:"title"`
 	Description string `json:"desc"`
 	Status      string `json:"status"`
+}
+
+func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authHeader := r.Header.Get("Authorization")
+		if authHeader == "" {
+			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+			return
+		}
+		token, err := validateAuthHeader(authHeader)
+		if err != nil {
+			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
+			return
+		}
+		userID, err := verifyToken(token)
+		if err != nil {
+			if errors.Is(err, ErrExpiredToken) {
+				sendJSONError(w, "token expired", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidSignature) {
+				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
+				return
+			} else if errors.Is(err, ErrInvalidToken) {
+				sendJSONError(w, "invalid token", http.StatusUnauthorized)
+				return
+			} else {
+				fmt.Println("err: ", err)
+				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				return
+			}
+		}
+		ctx := context.WithValue(r.Context(), userIDKey, userID)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
 }
 
 func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
@@ -157,32 +197,11 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "Invalid JSON payload", http.StatusBadRequest)
 			return
 		}
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+		userID, ok := r.Context().Value(userIDKey).(int64)
+		if !ok {
+			fmt.Println("err: ", ok, userID)
+			sendJSONError(w, "server failure", http.StatusInternalServerError)
 			return
-		}
-		token, err := validateAuthHeader(authHeader)
-		if err != nil {
-			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
-			return
-		}
-		userID, err := verifyToken(token)
-		if err != nil {
-			if errors.Is(err, ErrExpiredToken) {
-				sendJSONError(w, "token expired", http.StatusUnauthorized)
-				return
-			} else if errors.Is(err, ErrInvalidSignature) {
-				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
-				return
-			} else if errors.Is(err, ErrInvalidToken) {
-				sendJSONError(w, "invalid token", http.StatusUnauthorized)
-				return
-			} else {
-				fmt.Println("err: ", err)
-				sendJSONError(w, "server failure", http.StatusInternalServerError)
-				return
-			}
 		}
 		taskID, err := db.InsertTask(dbConn, task.Title, task.Description, userID)
 		if err != nil {
@@ -210,32 +229,10 @@ func DeleteTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "invalid id format, id must be a number", http.StatusBadRequest)
 			return
 		}
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+		userID, ok := r.Context().Value(userIDKey).(int64)
+		if !ok {
+			sendJSONError(w, "server failure", http.StatusInternalServerError)
 			return
-		}
-		token, err := validateAuthHeader(authHeader)
-		if err != nil {
-			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
-			return
-		}
-		userID, err := verifyToken(token)
-		if err != nil {
-			if errors.Is(err, ErrExpiredToken) {
-				sendJSONError(w, "token expired", http.StatusUnauthorized)
-				return
-			} else if errors.Is(err, ErrInvalidSignature) {
-				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
-				return
-			} else if errors.Is(err, ErrInvalidToken) {
-				sendJSONError(w, "invalid token", http.StatusUnauthorized)
-				return
-			} else {
-				fmt.Println("err: ", err)
-				sendJSONError(w, "server failure", http.StatusInternalServerError)
-				return
-			}
 		}
 		err = db.DeleteTask(dbConn, taskID, userID)
 		if err != nil {
@@ -273,32 +270,10 @@ func UpdateTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 			sendJSONError(w, "invalid id format, id must be a number", http.StatusBadRequest)
 			return
 		}
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+		userID, ok := r.Context().Value(userIDKey).(int64)
+		if !ok {
+			sendJSONError(w, "server failure", http.StatusInternalServerError)
 			return
-		}
-		token, err := validateAuthHeader(authHeader)
-		if err != nil {
-			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
-			return
-		}
-		userID, err := verifyToken(token)
-		if err != nil {
-			if errors.Is(err, ErrExpiredToken) {
-				sendJSONError(w, "token expired", http.StatusUnauthorized)
-				return
-			} else if errors.Is(err, ErrInvalidSignature) {
-				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
-				return
-			} else if errors.Is(err, ErrInvalidToken) {
-				sendJSONError(w, "invalid token", http.StatusUnauthorized)
-				return
-			} else {
-				fmt.Println("err: ", err)
-				sendJSONError(w, "server failure", http.StatusInternalServerError)
-				return
-			}
 		}
 		err = db.UpdateTask(dbConn, task.Description, task.Title, task.Status, taskID, userID)
 		if err != nil {
@@ -341,33 +316,10 @@ func GetTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		if limit > 100 {
 			limit = 100
 		}
-
-		authHeader := r.Header.Get("Authorization")
-		if authHeader == "" {
-			sendJSONError(w, "Missing Authorization header", http.StatusUnauthorized)
+		userID, ok := r.Context().Value(userIDKey).(int64)
+		if !ok {
+			sendJSONError(w, "server failure", http.StatusInternalServerError)
 			return
-		}
-		token, err := validateAuthHeader(authHeader)
-		if err != nil {
-			sendJSONError(w, "Invalid authorization format, Expected 'Bearer' <token>", http.StatusUnauthorized)
-			return
-		}
-		userID, err := verifyToken(token)
-		if err != nil {
-			if errors.Is(err, ErrExpiredToken) {
-				sendJSONError(w, "token expired", http.StatusUnauthorized)
-				return
-			} else if errors.Is(err, ErrInvalidSignature) {
-				sendJSONError(w, "signature is invalid", http.StatusUnauthorized)
-				return
-			} else if errors.Is(err, ErrInvalidToken) {
-				sendJSONError(w, "invalid token", http.StatusUnauthorized)
-				return
-			} else {
-				fmt.Println("err: ", err)
-				sendJSONError(w, "server failure", http.StatusInternalServerError)
-				return
-			}
 		}
 		tasks, err := db.GetTask(dbConn, userID, limit, page)
 		if err != nil {

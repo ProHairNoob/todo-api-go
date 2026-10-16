@@ -48,7 +48,7 @@ var (
 
 func verifyToken(tokenString string) (int64, error) {
 	claims := &Claims{}
-	key := os.Getenv("SECRET_KEY")
+	key := []byte(os.Getenv("SECRET_KEY"))
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		claims,
@@ -62,9 +62,9 @@ func verifyToken(tokenString string) (int64, error) {
 			return 0, ErrExpiredToken
 		} else if errors.Is(err, jwt.ErrSignatureInvalid) {
 			return 0, ErrInvalidSignature
+		} else {
+			return 0, ErrInvalidToken
 		}
-		return 0, err
-
 	}
 	if !token.Valid {
 		return 0, ErrInvalidToken
