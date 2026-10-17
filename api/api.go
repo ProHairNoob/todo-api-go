@@ -103,8 +103,7 @@ func RegisterHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		hash, err := hashPassword(user.Password)
 		if err != nil {
-			fmt.Println("err: ", err)
-			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			sendServerError(w, err)
 			return
 		}
 		userID, err := db.InsertUser(dbConn, user.Username, user.Email, hash)
@@ -160,7 +159,7 @@ func LoginHandler(dbConn *sql.DB) http.HandlerFunc {
 				sendJSONError(w, "invalid email or password", http.StatusUnauthorized)
 				return
 			} else {
-				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				sendServerError(w, err)
 				return
 			}
 		}
@@ -199,14 +198,12 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		userID, ok := r.Context().Value(userIDKey).(int64)
 		if !ok {
-			fmt.Println("err: ", ok, userID)
-			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			sendServerError(w, err)
 			return
 		}
 		taskID, err := db.InsertTask(dbConn, task.Title, task.Description, userID)
 		if err != nil {
-			fmt.Println("err: ", err)
-			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			sendServerError(w, err)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -231,7 +228,7 @@ func DeleteTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		userID, ok := r.Context().Value(userIDKey).(int64)
 		if !ok {
-			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			sendServerError(w, err)
 			return
 		}
 		err = db.DeleteTask(dbConn, taskID, userID)
@@ -240,8 +237,7 @@ func DeleteTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 				sendJSONError(w, "task not found", http.StatusNotFound)
 				return
 			} else {
-				fmt.Println("err: ", err)
-				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				sendServerError(w, err)
 				return
 			}
 		}
@@ -284,8 +280,7 @@ func UpdateTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 				sendJSONError(w, db.ErrInvalidStatus.Error(), http.StatusUnprocessableEntity)
 				return
 			} else {
-				fmt.Println("err: ", err)
-				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				sendServerError(w, err)
 				return
 			}
 		}
@@ -323,13 +318,12 @@ func GetTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		tasks, err := db.GetTask(dbConn, userID, limit, page)
 		if err != nil {
-			fmt.Println("err: ", err)
-			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			sendServerError(w, err)
 			return
 		}
 		jsonData, err := json.Marshal(tasks)
 		if err != nil {
-			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			sendServerError(w, err)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

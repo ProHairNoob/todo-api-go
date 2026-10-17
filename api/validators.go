@@ -3,6 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"regexp"
 	"strings"
@@ -16,6 +17,11 @@ func sendJSONError(w http.ResponseWriter, message string, code int) {
 	enc.Encode(map[string]string{
 		"message": message,
 	})
+}
+
+func sendServerError(w http.ResponseWriter, err error) {
+	log.Println(err)
+	sendJSONError(w, "server failure", http.StatusInternalServerError)
 }
 
 var ErrInvalidAuth = errors.New("invalid authorization format")
