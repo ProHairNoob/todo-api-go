@@ -28,12 +28,12 @@ type userSignin struct {
 }
 type addTask struct {
 	Title       string `json:"title"`
-	Description string `json:"desc"`
+	Description string `json:"description"`
 }
 type taskUpdate struct {
-	Title       string `json:"title"`
-	Description string `json:"desc"`
-	Status      string `json:"status"`
+	Title       *string `json:"title"`
+	Description *string `json:"description"`
+	Status      *string `json:"status"`
 }
 
 func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
@@ -207,10 +207,10 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(map[string]any{
-			"id":     taskID,
-			"title":  task.Title,
-			"desc":   task.Description,
-			"status": "todo",
+			"id":          taskID,
+			"title":       task.Title,
+			"description": task.Description,
+			"status":      "todo",
 		})
 	}
 }
@@ -282,14 +282,15 @@ func UpdateTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 				return
 			}
 		}
+		updated, err := db.GetTaskByID(dbConn, userID, taskID)
+		jsonData, err := json.Marshal(updated)
+		if err != nil {
+			sendServerError(w, err)
+			return
+		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(map[string]any{
-			"id":     taskID,
-			"title":  task.Title,
-			"desc":   task.Description,
-			"status": task.Status,
-		})
+		w.Write(jsonData)
 	}
 }
 
@@ -299,15 +300,18 @@ func GetTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		r.Body = http.MaxBytesReader(w, r.Body, 4096)
 		query := r.URL.Query()
 		page, err := strconv.ParseInt(query.Get("page"), 10, 64)
-		if err != nil || page == 0 {
+		if err != nil || page < 0 {
 			page = 1
 		}
 		limit, err := strconv.ParseInt(query.Get("limit"), 10, 64)
-		if err != nil || limit == 0 {
+		if err != nil {
 			limit = 10
 		}
-		if limit > 100 {
+		switch {
+		case limit > 100:
 			limit = 100
+		case limit < 1:
+			limit = 1
 		}
 		userID, ok := r.Context().Value(userIDKey).(int64)
 		if !ok {

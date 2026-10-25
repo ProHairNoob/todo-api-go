@@ -54,8 +54,8 @@ func createTasksTable(db *sql.DB) error {
 	return nil
 }
 
-func InsertTask(dbConn *sql.DB, title string, desc string, userID int64) (int64, error) {
-	result, err := dbConn.Exec("INSERT INTO tasks (title,description,user_id) VALUES (?,?,?)", title, desc, userID)
+func InsertTask(dbConn *sql.DB, title string, description string, userID int64) (int64, error) {
+	result, err := dbConn.Exec("INSERT INTO tasks (title,description,user_id) VALUES (?,?,?)", title, description, userID)
 	if err != nil {
 		fmt.Println(err)
 		return 0, err
@@ -79,8 +79,11 @@ func DeleteTask(dbConn *sql.DB, taskID int64, userID int64) error {
 	return err
 }
 
-func UpdateTask(dbConn *sql.DB, desc string, title string, status string, taskID int64, userID int64) error {
-	result, err := dbConn.Exec("UPDATE tasks SET description = ?, title = ?,status = ? WHERE id = ? AND user_id = ?", desc, title, status, taskID, userID)
+func UpdateTask(dbConn *sql.DB, description *string, title *string, status *string, taskID int64, userID int64) error {
+	result, err := dbConn.Exec(
+		"UPDATE tasks SET description = COALESCE(?,description),title = COALESCE(?,title),status = COALESCE(?,status) WHERE id = ? AND user_id = ?",
+		description, title, status, taskID, userID,
+	)
 	if err != nil {
 		var sqliteErr *sqlite.Error
 		if errors.As(err, &sqliteErr) && sqliteErr.Code() == sqlite3.SQLITE_CONSTRAINT_CHECK {
@@ -98,7 +101,24 @@ func UpdateTask(dbConn *sql.DB, desc string, title string, status string, taskID
 	return err
 }
 
-// finish get task in db
+func GetTaskByID(dbConn *sql.DB, userID int64, taskID int64) ([]tasks, error) {
+	row, err := dbConn.Query("SELECT id,title,description,status FROM tasks WHERE user_id = ? AND id = ?", userID, taskID)
+	if err != nil {
+		return nil, err
+	}
+	defer row.Close()
+
+	task := []tasks{}
+	for row.Next() {
+		var tsk tasks
+		if err := row.Scan(&tsk.ID, &tsk.Title, &tsk.Description, &tsk.Status); err != nil {
+			return nil, err
+		}
+		task = append(task, tsk)
+	}
+	return task, err
+}
+
 func GetTask(dbConn *sql.DB, userID int64, limit int64, page int64) ([]tasks, error) {
 	offset := (page - 1) * limit
 	row, err := dbConn.Query("SELECT id,title,description,status FROM tasks WHERE user_id = ? ORDER BY id LIMIT ? OFFSET ?", userID, limit, offset)
