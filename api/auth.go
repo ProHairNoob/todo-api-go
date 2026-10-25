@@ -84,7 +84,11 @@ func verifyToken(tokenString string) (int64, error) {
 	if !token.Valid {
 		return 0, ErrInvalidToken
 	}
-	return strconv.ParseInt(claims.Subject, 10, 64)
+	userID, err := strconv.ParseInt(claims.Subject, 10, 64)
+	if err != nil {
+		return 0, ErrInvalidToken
+	}
+	return userID, nil
 }
 
 func shaHashPassword(password string) string {
