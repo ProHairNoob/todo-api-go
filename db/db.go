@@ -44,7 +44,7 @@ func createTasksTable(db *sql.DB) error {
 		user_id INTEGER,
 		description TEXT NOT NULL,
 		title TEXT NOT NULL,
-		status TEXT CHECK(status in ('todo','in-progress','done')) DEFAULT 'todo',
+		status TEXT NOT NULL CHECK(status in ('todo','in-progress','done')) DEFAULT 'todo',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
 	_, err := db.Exec(sqlTable)
@@ -107,10 +107,12 @@ func GetTask(dbConn *sql.DB, userID int64, limit int64, page int64) ([]tasks, er
 	}
 	defer row.Close()
 
-	var task []tasks
+	task := []tasks{}
 	for row.Next() {
 		var tsk tasks
-		row.Scan(&tsk.ID, &tsk.Title, &tsk.Description, &tsk.Status)
+		if err := row.Scan(&tsk.ID, &tsk.Title, &tsk.Description, &tsk.Status); err != nil {
+			return nil, err
+		}
 		task = append(task, tsk)
 	}
 	return task, err
