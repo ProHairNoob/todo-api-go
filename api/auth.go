@@ -4,12 +4,14 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"errors"
+	"log"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-	_ "github.com/joho/godotenv/autoload"
+	"github.com/joho/godotenv"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -17,13 +19,27 @@ type Claims struct {
 	jwt.RegisteredClaims
 }
 
+func LoadEnv() {
+	err := godotenv.Load()
+	if err != nil {
+		log.Fatal("error loading .env file")
+	}
+	key, exists := os.LookupEnv("SECRET_KEY")
+	key = strings.TrimSpace(key)
+	if !exists {
+		log.Fatal("error no secret key given in .env")
+	} else if key == "" {
+		log.Fatal("error secret key cannot be empty")
+	}
+}
+
+var key = []byte(os.Getenv("SECRET_KEY"))
+
 func createToken(userID int64) (string, error) {
 	var (
-		key    []byte
 		token  *jwt.Token
 		signed string
 	)
-	key = []byte(os.Getenv("SECRET_KEY"))
 	now := time.Now()
 	claims := Claims{
 		jwt.RegisteredClaims{
@@ -48,7 +64,6 @@ var (
 
 func verifyToken(tokenString string) (int64, error) {
 	claims := &Claims{}
-	key := []byte(os.Getenv("SECRET_KEY"))
 	token, err := jwt.ParseWithClaims(
 		tokenString,
 		claims,

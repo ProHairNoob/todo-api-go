@@ -24,14 +24,14 @@ var (
 )
 
 func createUsersTable(db *sql.DB) error {
-	sql := `CREATE TABLE IF NOT EXISTS users(
+	sqlTable := `CREATE TABLE IF NOT EXISTS users(
 		user_id INTEGER PRIMARY KEY,
 		username TEXT NOT NULL UNIQUE,
 		email TEXT NOT NULL UNIQUE,
 		password_hash TEXT NOT NULL,
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
-	_, err := db.Exec(sql)
+	_, err := db.Exec(sqlTable)
 	if err != nil {
 		return err
 	}
@@ -39,7 +39,7 @@ func createUsersTable(db *sql.DB) error {
 }
 
 func createTasksTable(db *sql.DB) error {
-	sql := `CREATE TABLE IF NOT EXISTS tasks(
+	sqlTable := `CREATE TABLE IF NOT EXISTS tasks(
 		id INTEGER PRIMARY KEY,
 		user_id INTEGER,
 		description TEXT NOT NULL,
@@ -47,7 +47,7 @@ func createTasksTable(db *sql.DB) error {
 		status TEXT CHECK(status in ('todo','in-progress','done')) DEFAULT 'todo',
 		created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 	);`
-	_, err := db.Exec(sql)
+	_, err := db.Exec(sqlTable)
 	if err != nil {
 		return err
 	}
@@ -147,8 +147,8 @@ func GetUserByEmail(dbConn *sql.DB, email string) (userID int64, hash string, er
 	return userID, hash, err
 }
 
-func InitDB() (*sql.DB, error) {
-	db, err := sql.Open("sqlite", "./api.db?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(1)")
+func InitDB(dir string) (*sql.DB, error) {
+	db, err := sql.Open("sqlite", dir)
 	if err != nil {
 		fmt.Println(err)
 		return db, err

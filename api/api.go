@@ -5,7 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
@@ -61,8 +60,7 @@ func AuthMiddleware(next http.HandlerFunc) http.HandlerFunc {
 				sendJSONError(w, "invalid token", http.StatusUnauthorized)
 				return
 			} else {
-				fmt.Println("err: ", err)
-				sendJSONError(w, "server failure", http.StatusInternalServerError)
+				sendServerError(w, err)
 				return
 			}
 		}
@@ -198,7 +196,7 @@ func TodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		userID, ok := r.Context().Value(userIDKey).(int64)
 		if !ok {
-			sendServerError(w, err)
+			sendServerError(w, errors.New("missing user id in request context"))
 			return
 		}
 		taskID, err := db.InsertTask(dbConn, task.Title, task.Description, userID)
@@ -228,7 +226,7 @@ func DeleteTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		userID, ok := r.Context().Value(userIDKey).(int64)
 		if !ok {
-			sendServerError(w, err)
+			sendServerError(w, errors.New("missing user id in request context"))
 			return
 		}
 		err = db.DeleteTask(dbConn, taskID, userID)
@@ -268,7 +266,7 @@ func UpdateTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		userID, ok := r.Context().Value(userIDKey).(int64)
 		if !ok {
-			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			sendServerError(w, errors.New("missing user id in request context"))
 			return
 		}
 		err = db.UpdateTask(dbConn, task.Description, task.Title, task.Status, taskID, userID)
@@ -313,7 +311,7 @@ func GetTodoHandler(dbConn *sql.DB) http.HandlerFunc {
 		}
 		userID, ok := r.Context().Value(userIDKey).(int64)
 		if !ok {
-			sendJSONError(w, "server failure", http.StatusInternalServerError)
+			sendServerError(w, errors.New("missing user id in request context"))
 			return
 		}
 		tasks, err := db.GetTask(dbConn, userID, limit, page)
